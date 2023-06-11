@@ -47,7 +47,8 @@
 (deftest insert-test
   (testing "Insert single document with default options"
     (let [client @shared-connection
-          doc {:name (.toString (java.util.UUID/randomUUID))
+          doc {:_id 1
+               :name (.toString (java.util.UUID/randomUUID))
                :age (rand-int 60)
                :city (.toString (java.util.UUID/randomUUID))
                :country (.toString (java.util.UUID/randomUUID))
@@ -60,7 +61,8 @@
         (is (= (update doc :created-at t/java-date) (first db-doc))))))
   (testing "Insert single document with options"
     (let [client @shared-connection
-          doc {:name (.toString (java.util.UUID/randomUUID))
+          doc {:_id 1
+               :name (.toString (java.util.UUID/randomUUID))
                :age (rand-int 60)
                :city (.toString (java.util.UUID/randomUUID))
                :country (.toString (java.util.UUID/randomUUID))
@@ -73,8 +75,9 @@
         (is (= (update doc :created-at t/java-date) (first db-doc))))))
   (testing "Insert multiple documents"
     (let [client @shared-connection
-          docs (for [_ (range 10)]
-                 {:name (.toString (java.util.UUID/randomUUID))
+          docs (for [i (range 10)]
+                 {:_id i
+                  :name (.toString (java.util.UUID/randomUUID))
                   :age (rand-int 60)
                   :city (.toString (java.util.UUID/randomUUID))
                   :country (.toString (java.util.UUID/randomUUID))
@@ -105,8 +108,9 @@
         (is (= 0 count-db-docs)))))
   (testing "Delete only some documents"
     (let [client @shared-connection
-          docs (for [_ (range 10)]
-                 {:name (.toString (java.util.UUID/randomUUID))
+          docs (for [i (range 10)]
+                 {:_id i
+                  :name (.toString (java.util.UUID/randomUUID))
                   :age (rand-int 300)
                   :city (.toString (java.util.UUID/randomUUID))
                   :country (.toString (java.util.UUID/randomUUID))})

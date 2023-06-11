@@ -191,7 +191,8 @@
                      (.find ^MongoCollection collection session bson-query)
                      (.find ^MongoCollection collection bson-query))
                     (.projection (->projections only exclude)))]
-     (clean (conversion/from-bson-document (.first ^FindIterable iterator) true)))))
+     (cond-> (conversion/from-bson-document (.first ^FindIterable iterator) true)
+       (seq only) (select-keys only)))))
 
 
 (defn ^:public-api query
@@ -219,7 +220,8 @@
                    (.skip skip)
                    (.batchSize ^int batch-size))
         cursor (.cursor iterator)]
-    (clean (m-cursor-iterate cursor true))))
+    (cond->> (m-cursor-iterate cursor true)
+      (seq only) (map #(select-keys % only)))))
 
 
 (defn ^:public-api count-docs
@@ -320,7 +322,7 @@
                     (.listIndexes collection session)
                     (.listIndexes collection))
          cursor (.cursor iterator)]
-     (clean (m-cursor-iterate cursor true)))))
+     (m-cursor-iterate cursor true))))
 
 
 ;; API usage

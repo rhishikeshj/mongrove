@@ -54,7 +54,7 @@
           db (mc/get-db client (str "test-db-" (.toString (java.util.UUID/randomUUID))))
           coll (str "test-coll-" (.toString (java.util.UUID/randomUUID)))]
       (mc/insert db coll docs :multi? true :write-concern :majority)
-      (let [db-doc (mc/fetch-one db coll {})]
+      (let [db-doc (mc/fetch-one db coll {} :exclude [:_id])]
         (is ((set docs) db-doc)))))
   (testing "Get a particular document"
     (let [client @shared-connection
@@ -70,7 +70,7 @@
                           :age 100
                           :city "knowhere"
                           :country "rohan"})
-      (let [db-doc (mc/fetch-one db coll {:age {:$gt 60}})]
+      (let [db-doc (mc/fetch-one db coll {:age {:$gt 60}} :exclude [:_id])]
         (is (= {:name "harry"
                 :age 100
                 :city "knowhere"
@@ -86,25 +86,51 @@
           db (mc/get-db client (str "test-db-" (.toString (java.util.UUID/randomUUID))))
           coll (str "test-coll-" (.toString (java.util.UUID/randomUUID)))]
       (mc/insert db coll docs :multi? true :write-concern :majority)
-      (mc/insert db coll {:name "harry"
+      (mc/insert db coll {:_id 20
+                          :name "harry"
+                          :age 100
+                          :city "knowhere"
+                          :country "rohan"})
+      (let [db-doc (mc/fetch-one db coll {:age {:$gt 60}} :only [:name])
+            another-doc (mc/fetch-one db coll {:age {:$lt 60}} :exclude [:name :_id])
+            yet-another-doc (mc/fetch-one db coll {:age {:$lt 60}}
+                                          :only [:age :city]
+                                          :exclude [:age :_id])] ; :only takes precedence
+        (is (= {:name "harry"} db-doc))
+        (is (= (set (keys another-doc)) #{:age :city :country}))
+        (is (= (set (keys yet-another-doc)) #{:age :city})))))
+  (testing "Get a document with _id"
+    (let [client @shared-connection
+          docs (for [i (range 10)]
+                 {:_id i
+                  :name (.toString (java.util.UUID/randomUUID))
+                  :age (rand-int 60)
+                  :city (.toString (java.util.UUID/randomUUID))
+                  :country (.toString (java.util.UUID/randomUUID))})
+          db (mc/get-db client (str "test-db-" (.toString (java.util.UUID/randomUUID))))
+          coll (str "test-coll-" (.toString (java.util.UUID/randomUUID)))]
+      (mc/insert db coll docs :multi? true :write-concern :majority)
+      (mc/insert db coll {:_id 20
+                          :name "harry"
                           :age 100
                           :city "knowhere"
                           :country "rohan"})
       (let [db-doc (mc/fetch-one db coll {:age {:$gt 60}} :only [:name])
             another-doc (mc/fetch-one db coll {:age {:$lt 60}} :exclude [:name])
             yet-another-doc (mc/fetch-one db coll {:age {:$lt 60}}
-                                          :only [:age :city]
-                                          :exclude [:age])] ;; :only takes precedence
+                                          :only [:age :city :_id]
+                                          :exclude [:age])] ; :only takes precedence
         (is (= {:name "harry"} db-doc))
-        (is (= (set (keys another-doc)) #{:age :city :country}))
-        (is (= (set (keys yet-another-doc)) #{:age :city}))))))
+        (is (= (set (keys another-doc)) #{:age :city :country :_id}))
+        (is (= (set (keys yet-another-doc)) #{:age :city :_id}))))))
 
 
 (deftest query-test
   (testing "Query all documents"
     (let [client @shared-connection
-          docs (for [_ (range 10)]
-                 {:name (.toString (java.util.UUID/randomUUID))
+          docs (for [i (range 10)]
+                 {:_id i
+                  :name (.toString (java.util.UUID/randomUUID))
                   :age (rand-int 60)
                   :city (.toString (java.util.UUID/randomUUID))
                   :country (.toString (java.util.UUID/randomUUID))})
@@ -121,8 +147,9 @@
                   :age (rand-int 60)
                   :city (.toString (java.util.UUID/randomUUID))
                   :country (.toString (java.util.UUID/randomUUID))})
-          query-docs (for [_ (range 10)]
-                       {:name (.toString (java.util.UUID/randomUUID))
+          query-docs (for [i (range 10)]
+                       {:_id i
+                        :name (.toString (java.util.UUID/randomUUID))
                         :age (+ 100 (rand-int 40))
                         :city (.toString (java.util.UUID/randomUUID))
                         :country (.toString (java.util.UUID/randomUUID))})
@@ -130,13 +157,15 @@
           coll (str "test-coll-" (.toString (java.util.UUID/randomUUID)))]
       (mc/insert db coll docs :multi? true :write-concern :majority)
       (mc/insert db coll query-docs :multi? true :write-concern :majority)
-      (mc/insert db coll {:name "harry"
+      (mc/insert db coll {:_id "h-id"
+                          :name "harry"
                           :age 100
                           :city "knowhere"
                           :country "rohan"})
       (let [db-doc (mc/query db coll {:name "harry"})
             queried-docs (mc/query db coll {:age {:$gte 100}})]
-        (is (= {:name "harry"
+        (is (= {:_id "h-id"
+                :name "harry"
                 :age 100
                 :city "knowhere"
                 :country "rohan"}
@@ -157,23 +186,38 @@
                           :city "knowhere"
                           :country "rohan"})
       (let [db-doc (mc/query db coll {:age {:$gt 60}} :only [:name])
-            other-docs (mc/query db coll {:age {:$lt 60}} :exclude [:name])
+            other-docs (mc/query db coll {:age {:$lt 60}} :exclude [:name :_id])
             yet-another-doc (mc/query db coll {:age {:$lt 60}}
                                       :only [:age :city]
-                                      :exclude [:age])] ;; :only takes precedence
+                                      :exclude [:age])] ; :only takes precedence
         (is (= 1 (count db-doc)))
         (is (= 10 (count other-docs)))
         (is (= {:name "harry"} (first db-doc)))
         (doseq [d other-docs]
           (is (= (set (keys d)) #{:age :city :country})))
-        (is (= (set (keys (first yet-another-doc))) #{:age :city}))))))
+        (is (= (set (keys (first yet-another-doc))) #{:age :city})))))
+  (testing "Get documents with their _ids"
+    (let [client @shared-connection
+          db (mc/get-db client (str "test-db" (.toString (java.util.UUID/randomUUID))))
+          coll "test-coll"
+          data [{:_id 0, :name "Pepperoni", :size "small", :price 19, :quantity 10},
+                {:_id 1, :name "Pepperoni", :size "medium", :price 20, :quantity 20},
+                {:_id 2, :name "Pepperoni", :size "large", :price 21, :quantity 30},
+                {:_id 3, :name "Cheese", :size "small", :price 12, :quantity 15},
+                {:_id 4, :name "Cheese", :size "medium", :price 13, :quantity 50},
+                {:_id 5, :name "Cheese", :size "large", :price 14, :quantity 10},
+                {:_id 6, :name "Vegan", :size "small", :price 17, :quantity 10},
+                {:_id 7, :name "Vegan", :size "medium", :price 18, :quantity 10}]]
+      (mc/insert db coll data :multi? true)
+      (is (= data (mc/query db coll {} :id? true))))))
 
 
 (deftest query-sort-test
   (testing "Query documents with single field sort"
     (let [client @shared-connection
-          docs (for [_ (range 10)]
-                 {:name (.toString (java.util.UUID/randomUUID))
+          docs (for [i (range 10)]
+                 {:_id i
+                  :name (.toString (java.util.UUID/randomUUID))
                   ;; @WARN Increasing the range here because
                   ;; is the age value repeats, the sort of 2 entries
                   ;; with equal values is not predictable in MongoDB
@@ -194,8 +238,9 @@
 (deftest query-limit-test
   (testing "Get only some documents"
     (let [client @shared-connection
-          docs (for [_ (range 10)]
-                 {:name (.toString (java.util.UUID/randomUUID))
+          docs (for [i (range 10)]
+                 {:_id i
+                  :name (.toString (java.util.UUID/randomUUID))
                   :age (rand-int 300)
                   :city (.toString (java.util.UUID/randomUUID))
                   :country (.toString (java.util.UUID/randomUUID))})
