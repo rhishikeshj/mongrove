@@ -2,6 +2,7 @@
   (:require
     [clojure.string :as cs]
     [clojure.test :refer :all]
+    [java-time.api :as t]
     [mongrove.core :as mc]))
 
 
@@ -49,38 +50,43 @@
           doc {:name (.toString (java.util.UUID/randomUUID))
                :age (rand-int 60)
                :city (.toString (java.util.UUID/randomUUID))
-               :country (.toString (java.util.UUID/randomUUID))}
+               :country (.toString (java.util.UUID/randomUUID))
+               :created-at (t/zoned-date-time 2023 06 11)}
           db (mc/get-db client (str "test-db-" (.toString (java.util.UUID/randomUUID))))
           coll (str "test-coll-" (.toString (java.util.UUID/randomUUID)))]
       (mc/insert db coll doc)
       (let [db-doc (mc/query db coll {})]
         (is (= 1 (count db-doc)))
-        (is (= doc (first db-doc))))))
+        (is (= (update doc :created-at t/java-date) (first db-doc))))))
   (testing "Insert single document with options"
     (let [client @shared-connection
           doc {:name (.toString (java.util.UUID/randomUUID))
                :age (rand-int 60)
                :city (.toString (java.util.UUID/randomUUID))
-               :country (.toString (java.util.UUID/randomUUID))}
+               :country (.toString (java.util.UUID/randomUUID))
+               :created-at (t/zoned-date-time 2023 06 11 22 32)}
           db (mc/get-db client (str "test-db-" (.toString (java.util.UUID/randomUUID))))
           coll (str "test-coll-" (.toString (java.util.UUID/randomUUID)))]
       (mc/insert db coll doc :multi? false :write-concern :majority)
       (let [db-doc (mc/query db coll {})]
         (is (= 1 (count db-doc)))
-        (is (= doc (first db-doc))))))
+        (is (= (update doc :created-at t/java-date) (first db-doc))))))
   (testing "Insert multiple documents"
     (let [client @shared-connection
           docs (for [_ (range 10)]
                  {:name (.toString (java.util.UUID/randomUUID))
                   :age (rand-int 60)
                   :city (.toString (java.util.UUID/randomUUID))
-                  :country (.toString (java.util.UUID/randomUUID))})
+                  :country (.toString (java.util.UUID/randomUUID))
+                  :created-at (t/zoned-date-time 2023 06 11 22 35)})
           db (mc/get-db client (str "test-db-" (.toString (java.util.UUID/randomUUID))))
           coll (str "test-coll-" (.toString (java.util.UUID/randomUUID)))]
       (mc/insert db coll docs :multi? true :write-concern :majority)
       (let [db-docs (mc/query db coll {})]
         (is (= 10 (count db-docs)))
-        (is (= docs db-docs))))))
+        (is (= (map (fn [d]
+                      (update d :created-at t/java-date))
+                    docs) db-docs))))))
 
 
 (deftest delete-test

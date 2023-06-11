@@ -9,6 +9,9 @@
       BasicDBList
       DBObject
       DBRef)
+    (java.time
+      LocalDateTime
+      ZonedDateTime)
     (java.util
       Date
       List
@@ -68,7 +71,20 @@
 
   Object
   (to-bson-document [input]
-    input))
+    input)
+
+  ZonedDateTime
+  (to-bson-document [input]
+    (-> input
+        .toInstant
+        java.util.Date/from))
+
+  LocalDateTime
+  (to-bson-document [input]
+    (-> input
+        (.atZone (java.time.ZoneId/systemDefault))
+        .toInstant
+        java.util.Date/from)))
 
 
 (defprotocol ConvertFromBsonDocument
