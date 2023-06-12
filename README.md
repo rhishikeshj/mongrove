@@ -171,12 +171,27 @@ If you want to test against a different mongo cluster, please change the options
 
 The `test/mongrove/generative` folder contains generative tests for Mongo query operators. These tests are primarily aimed comparing query results across 2 different Mongo clusters, something you might need to do when testing for an upgrade !
 
+### Coverage
+
+|----------------------------+---------+---------|
+|                  Namespace | % Forms | % Lines |
+|----------------------------+---------+---------|
+|        mongrove.conversion |   82,09 |   74,51 |
+|              mongrove.core |   68,96 |   67,73 |
+|          mongrove.reactive |    6,19 |   14,67 |
+|             mongrove.utils |   62,16 |   97,56 |
+| mongrove.utils.subscribers |   16,09 |   19,35 |
+|----------------------------+---------+---------|
+|                  ALL FILES |   51,77 |   55,24 |
+|----------------------------+---------+---------|
+
 ## Next steps
 
 1. Add support for ACID transactions : ✅
 2. Add benchmarking results comparing against [Monger](https://github.com/michaelklishin/monger)
 3. Add support for sharded Mongo clusters
 4. Add support for Reactive Java API : ✅
+5. Add support for Mongo Aggregation pipelines
 
 ## License
 
