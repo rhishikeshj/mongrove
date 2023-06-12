@@ -6,7 +6,7 @@ A Clojure library designed to interact with MongoDB.
 
 ## Status
 
-[![Helpshift](https://circleci.com/gh/helpshift/mongrove.svg?style=shield)](https://circleci.com/gh/helpshift/mongrove)
+[![Helpshift](https://circleci.com/gh/rhishikeshj/mongrove.svg?style=shield)](https://circleci.com/gh/rhishikeshj/mongrove)
 
 ## APIs
 Currently there are 2 ways in which the mongrove API can be used to interact with MongoDB
